@@ -1,0 +1,136 @@
+---
+description: React Native 및 Expo 개발 규칙 - 컴포넌트 구조, Expo Router 사용법
+globs: ["app/**/*", "src/**/*", "components/**/*"]
+alwaysApply: false
+---
+
+# React Native & Expo Guidelines
+
+## Expo Configuration
+- **SDK Version:** 51 이상 사용
+- **Workflow:** Managed Workflow 유지 (eject 금지)
+- **Expo Router:** File-based routing (`app/` 디렉토리)
+
+## Folder Structure
+```
+app/
+├── (tabs)/              # Tab navigation group (4 tabs)
+│   ├── _layout.tsx      # Tab layout with Lucide icons
+│   ├── index.tsx        # 홈 (대시보드 - 오늘의 상태, 연속 작성 현황)
+│   ├── write.tsx        # 일기 쓰기 + AI 번역 요청
+│   ├── archive.tsx      # 일기 아카이브 (캘린더/리스트 뷰)
+│   └── mypage.tsx       # 마이페이지 (프로필, 설정, 학습 통계)
+├── diary/
+│   └── [id].tsx         # 일기 상세 (동적 라우트)
+├── auth/
+│   ├── login.tsx
+│   └── register.tsx
+├── _layout.tsx          # Root layout
+└── +not-found.tsx       # 404 페이지
+
+src/
+├── components/
+│   ├── diary/           # 일기 관련 컴포넌트
+│   ├── learning/        # 학습 관련 컴포넌트
+│   ├── ui/              # 공통 UI 컴포넌트
+│   └── auth/            # 인증 관련 컴포넌트
+├── hooks/               # Custom hooks
+├── stores/              # Zustand stores
+├── services/            # API 서비스
+├── types/               # TypeScript 타입 정의
+├── utils/               # 유틸리티 함수
+└── constants/           # 상수 정의
+```
+
+## Component Guidelines
+- Functional Components만 사용 (Class 컴포넌트 금지)
+- Custom Hooks로 로직 분리
+- 컴포넌트당 하나의 책임 원칙 (SRP)
+- 재사용 가능한 컴포넌트는 `src/components/ui/`에 배치
+
+## Expo Router Rules
+- Layout 파일에서 navigation 설정
+- 동적 라우트는 `[param]` 형식 사용
+- Group 라우트는 `(groupName)` 형식 사용
+- 보호된 라우트는 `_layout.tsx`에서 auth 체크
+
+## Performance Optimization
+- `React.memo()` 적절히 사용
+- `useMemo`, `useCallback` 필요시 적용
+- FlatList/FlashList 사용 (긴 목록)
+- 이미지 최적화: `expo-image` 사용 권장
+
+## Error Handling
+- AI 응답 지연 시: Skeleton Loader 또는 Lottie Animation
+- API 에러 시: 사용자 친화적 Toast Message
+- 네트워크 에러: 재시도 버튼 + 오프라인 안내
+
+## Navigation Example (4 Tabs - Matcha Latte Theme)
+```typescript
+// app/(tabs)/_layout.tsx
+import { Tabs } from 'expo-router';
+import { Home, PenLine, Calendar, User } from 'lucide-react-native';
+
+// Matcha Latte theme colors
+const colors = {
+  brand: '#7AA06E',
+  brandDark: '#56744C',
+  textSub: '#8C857B',
+  bgSurface: '#FFFFFF',
+  bgCanvas: '#FAFAF8',
+};
+
+export default function TabLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: colors.brand,
+        tabBarInactiveTintColor: colors.textSub,
+        tabBarStyle: {
+          backgroundColor: colors.bgSurface,
+          borderTopColor: '#EFF5ED',
+          borderTopWidth: 1,
+          height: 88,
+          paddingBottom: 28,
+          paddingTop: 12,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
+        headerStyle: { backgroundColor: colors.bgCanvas },
+        headerShadowVisible: false,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: '홈',
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} strokeWidth={2} />,
+        }}
+      />
+      <Tabs.Screen
+        name="write"
+        options={{
+          title: '쓰기',
+          tabBarIcon: ({ color, size }) => <PenLine size={size} color={color} strokeWidth={2} />,
+        }}
+      />
+      <Tabs.Screen
+        name="archive"
+        options={{
+          title: '아카이브',
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} strokeWidth={2} />,
+        }}
+      />
+      <Tabs.Screen
+        name="mypage"
+        options={{
+          title: '마이',
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} strokeWidth={2} />,
+        }}
+      />
+    </Tabs>
+  );
+}
+```

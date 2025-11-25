@@ -1,0 +1,279 @@
+---
+description: NativeWind (Tailwind CSS) v4 스타일링 규칙 - Matcha Latte 테마
+globs: ["**/*.tsx", "**/*.ts"]
+alwaysApply: false
+---
+
+# NativeWind Styling Guidelines
+
+## Design Philosophy
+**Theme:** "Fresh Growth & Healing" (Matcha Latte)
+
+일본의 다도(Tea Ceremony)에서 영감을 받은 차분한 말차색과 따뜻한 흙색을 사용하여, 학습의 스트레스를 줄이고 긍정적인 성장의 느낌을 줍니다.
+
+---
+
+## Color Tokens (Tailwind Config)
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        // Brand Colors - Matcha Green
+        brand: {
+          DEFAULT: '#7AA06E', // Matcha Green - Primary Action / Success
+          light: '#EFF5ED',   // Matcha Milk - Backgrounds / Secondary Buttons
+          dark: '#56744C',    // Deep Matcha - Active States
+        },
+        
+        // Background Colors
+        'bg-canvas': '#FAFAF8',  // Off-White / Rice Paper - Main App Background
+        'bg-surface': '#FFFFFF', // Pure White - Card Background
+        
+        // Text Colors
+        'text-main': '#4B4036',  // Earth Brown / Coffee - Main Text (softer than black)
+        'text-sub': '#8C857B',   // Latte Beige - Sub Text / Hints
+        
+        // Accent & Semantic
+        accent: '#EBCD78',       // Yuzu Yellow / Honey - Highlights / Badges
+        error: '#D97D7D',        // Azuki Red - Error / Alert
+      },
+    },
+  },
+};
+```
+
+### Color Usage Quick Reference
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `brand` | #7AA06E | Primary buttons, success states, icons |
+| `brand-light` | #EFF5ED | Secondary buttons, input backgrounds |
+| `brand-dark` | #56744C | Active/pressed states, emphasis |
+| `bg-canvas` | #FAFAF8 | Main app background |
+| `bg-surface` | #FFFFFF | Cards, modals, sheets |
+| `text-main` | #4B4036 | Body text, headings |
+| `text-sub` | #8C857B | Captions, metadata, hints |
+| `accent` | #EBCD78 | Badges, highlights, achievements |
+| `error` | #D97D7D | Error messages, destructive actions |
+
+---
+
+## Typography Strategy
+
+### Font Family
+- **Korean:** `Pretendard`
+- **Japanese:** `Noto Sans JP`
+- **Style:** Round & Friendly
+
+### Typography Scale
+```tsx
+// Page Titles - Friendly tone
+<Text className="text-2xl font-bold text-text-main">오늘의 일기</Text>
+
+// Card Titles
+<Text className="text-lg font-semibold text-text-main">핵심 어휘</Text>
+
+// Diary Content - Body text
+<Text className="text-base font-normal text-text-main leading-relaxed">
+  {diaryContent}
+</Text>
+
+// Japanese Text - With proper spacing
+<Text className="text-xl font-medium text-text-main tracking-wide">
+  {japaneseText}
+</Text>
+
+// Dates, Metadata
+<Text className="text-sm text-text-sub">{date}</Text>
+
+// Hints, Placeholders
+<Text className="text-sm text-text-sub opacity-70">{hint}</Text>
+```
+
+---
+
+## UI Components Rules (Shape: Pill & Soft)
+
+### Buttons (Pill Shape)
+
+```tsx
+// Primary Button - Strong CTA
+<Pressable className="bg-brand active:bg-brand-dark rounded-full h-14 px-8 items-center justify-center shadow-md">
+  <Text className="text-white font-semibold text-base">번역하기</Text>
+</Pressable>
+
+// Secondary Button - Less emphasized
+<Pressable className="bg-brand-light active:bg-brand-light/80 rounded-full h-12 px-6 items-center justify-center">
+  <Text className="text-brand-dark font-semibold text-base">취소</Text>
+</Pressable>
+
+// Text Button / Ghost
+<Pressable className="rounded-full h-10 px-4 items-center justify-center">
+  <Text className="text-brand-dark font-medium text-sm">더보기</Text>
+</Pressable>
+
+// Floating Action Button (FAB)
+<Pressable className="bg-brand active:bg-brand-dark rounded-full w-14 h-14 items-center justify-center shadow-lg absolute bottom-6 right-6">
+  <Ionicons name="add" size={24} color="white" />
+</Pressable>
+```
+
+### Cards (Soft Rounded)
+
+```tsx
+// Standard Card
+<View className="bg-bg-surface rounded-3xl p-6 shadow-sm">
+  <Text className="text-lg font-semibold text-text-main">{title}</Text>
+  <Text className="text-sm text-text-sub mt-1">{date}</Text>
+  <Text className="text-base text-text-main mt-3 leading-relaxed">{content}</Text>
+</View>
+
+// Vocabulary Card
+<View className="bg-bg-surface rounded-3xl p-6 shadow-sm shadow-brand/10">
+  <Text className="text-xl font-bold text-text-main">{word}</Text>
+  <Text className="text-brand text-sm mt-1">{yomikata}</Text>
+  <Text className="text-text-sub mt-2">{meaning}</Text>
+</View>
+
+// Highlighted Card (with accent)
+<View className="bg-bg-surface rounded-3xl p-6 shadow-sm border-l-4 border-accent">
+  <Text className="text-lg font-semibold text-text-main">원포인트 문법</Text>
+  <Text className="text-base text-text-main mt-2">{grammarPoint}</Text>
+</View>
+```
+
+### Inputs
+
+```tsx
+// Text Input
+<TextInput
+  className="bg-brand-light/50 rounded-2xl px-4 h-14 text-text-main text-base focus:ring-2 focus:ring-brand"
+  placeholder="일기를 작성하세요..."
+  placeholderTextColor="#8C857B"
+/>
+
+// Multiline Input (Diary)
+<TextInput
+  className="bg-brand-light/50 rounded-2xl p-4 text-text-main text-base min-h-[200px] focus:ring-2 focus:ring-brand"
+  multiline
+  textAlignVertical="top"
+  placeholder="오늘 하루는 어땠나요?"
+  placeholderTextColor="#8C857B"
+/>
+
+// Search Input
+<View className="flex-row items-center bg-brand-light/50 rounded-2xl px-4 h-12">
+  <Ionicons name="search" size={20} color="#8C857B" />
+  <TextInput
+    className="flex-1 ml-2 text-text-main text-base"
+    placeholder="일기 검색..."
+    placeholderTextColor="#8C857B"
+  />
+</View>
+```
+
+---
+
+## Mood Emoji Styling
+
+```tsx
+const moods = ['😊', '😢', '😡', '😴', '🥳', '😌'];
+
+<View className="flex-row gap-3">
+  {moods.map((mood) => (
+    <Pressable
+      key={mood}
+      className={cn(
+        'w-12 h-12 rounded-full items-center justify-center',
+        selected === mood 
+          ? 'bg-brand-light border-2 border-brand' 
+          : 'bg-bg-canvas'
+      )}
+    >
+      <Text className="text-2xl">{mood}</Text>
+    </Pressable>
+  ))}
+</View>
+```
+
+---
+
+## Layout Patterns
+
+```tsx
+// Safe Area with Canvas Background
+<SafeAreaView className="flex-1 bg-bg-canvas">
+  <ScrollView 
+    className="flex-1" 
+    contentContainerStyle={{ padding: 16 }}
+    showsVerticalScrollIndicator={false}
+  >
+    {/* Content */}
+  </ScrollView>
+</SafeAreaView>
+
+// Header
+<View className="px-4 py-3 bg-bg-canvas">
+  <Text className="text-2xl font-bold text-text-main">오늘의 일기</Text>
+  <Text className="text-sm text-text-sub mt-1">2024년 1월 15일</Text>
+</View>
+
+// Section
+<View className="mt-6">
+  <Text className="text-lg font-semibold text-text-main mb-3">핵심 어휘</Text>
+  <View className="gap-3">
+    {/* Vocabulary cards */}
+  </View>
+</View>
+```
+
+---
+
+## Iconography & Illustrations
+
+### Icons
+- **Library:** `Lucide-React-Native` (rounded line caps)
+- **Primary Color:** `text-brand-dark` or `text-text-main`
+- **Secondary Color:** `text-text-sub`
+
+```tsx
+import { PenLine, Calendar, BookOpen, Settings, Plus } from 'lucide-react-native';
+
+// Tab Icon
+<PenLine size={24} color="#56744C" strokeWidth={2} />
+
+// Action Icon
+<Plus size={24} color="#FFFFFF" strokeWidth={2.5} />
+
+// Metadata Icon
+<Calendar size={16} color="#8C857B" strokeWidth={1.5} />
+```
+
+### Illustrations
+- **Style:** Cute, flat style illustrations
+- **Motifs:** Cats, tea cups, leaves, matcha
+- **Purpose:** Enhance the 'Healing' vibe, empty states, onboarding
+
+---
+
+## Animation & Transitions
+
+- `react-native-reanimated` 사용 권장
+- 로딩 시 Skeleton Loader (brand-light 색상)
+- 부드러운 화면 전환 적용
+- 버튼 press 시 subtle scale animation
+
+---
+
+## Best Practices
+
+1. **Spacing:** 일관된 spacing 사용 (4, 8, 12, 16, 20, 24, 32)
+2. **Shadows:** 매우 미묘하게 사용 (`shadow-sm`, `shadow-brand/10`)
+3. **Rounded Corners:** 
+   - Small elements: `rounded-xl` (12px)
+   - Cards: `rounded-3xl` (24px)
+   - Buttons: `rounded-full` (pill shape)
+4. **Conditional Styling:** `cn()` 또는 `clsx` 사용
+5. **Minimalism:** 일본 다도의 와비사비 정신 반영

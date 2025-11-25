@@ -8,6 +8,9 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 
+// Import NativeWind global styles
+import "../global.css";
+
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,

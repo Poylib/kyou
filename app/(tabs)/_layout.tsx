@@ -1,57 +1,136 @@
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { Tabs } from 'expo-router';
+import { Home, PenLine, Calendar, User } from 'lucide-react-native';
+import { Platform } from 'react-native';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+/**
+ * Matcha Latte Theme Colors
+ * Design System for consistent tab bar styling
+ */
+const theme = {
+  brand: '#7AA06E',
+  brandDark: '#56744C',
+  textSub: '#8C857B',
+  bgSurface: '#FFFFFF',
+  bgCanvas: '#FAFAF8',
+  brandLight: '#EFF5ED',
+  textMain: '#4B4036',
+};
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+/**
+ * Tab Bar Configuration
+ * - iOS: 88pt height with safe area consideration
+ * - Android: 64dp height
+ * - Accessible touch targets (44pt minimum)
+ */
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 88 : 64;
+const TAB_BAR_PADDING_BOTTOM = Platform.OS === 'ios' ? 28 : 8;
+const TAB_BAR_PADDING_TOP = 12;
+const ICON_SIZE = 24;
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
+        // Tab Bar Styling
+        tabBarActiveTintColor: theme.brand,
+        tabBarInactiveTintColor: theme.textSub,
+        tabBarStyle: {
+          backgroundColor: theme.bgSurface,
+          borderTopColor: theme.brandLight,
+          borderTopWidth: 1,
+          height: TAB_BAR_HEIGHT,
+          paddingBottom: TAB_BAR_PADDING_BOTTOM,
+          paddingTop: TAB_BAR_PADDING_TOP,
+          // Subtle shadow for elevation
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.03,
+          shadowRadius: 8,
+          elevation: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 2,
+        },
+        // Header Styling
+        headerStyle: {
+          backgroundColor: theme.bgCanvas,
+        },
+        headerTitleStyle: {
+          color: theme.textMain,
+          fontWeight: '700',
+          fontSize: 18,
+        },
+        headerShadowVisible: false,
+        headerTitleAlign: 'center',
+      }}
+    >
+      {/* Tab 1: Home - Dashboard */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+          title: '홈',
+          headerTitle: 'Kyou',
+          tabBarIcon: ({ color, focused }) => (
+            <Home 
+              size={ICON_SIZE} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
           ),
         }}
       />
+
+      {/* Tab 2: Write - Diary Entry */}
       <Tabs.Screen
-        name="two"
+        name="write"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: '쓰기',
+          headerTitle: '일기 쓰기',
+          tabBarIcon: ({ color, focused }) => (
+            <PenLine 
+              size={ICON_SIZE} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
+        }}
+      />
+
+      {/* Tab 3: Archive - Calendar/List View */}
+      <Tabs.Screen
+        name="archive"
+        options={{
+          title: '아카이브',
+          headerTitle: '지난 일기',
+          tabBarIcon: ({ color, focused }) => (
+            <Calendar 
+              size={ICON_SIZE} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
+        }}
+      />
+
+      {/* Tab 4: My Page - Profile & Settings */}
+      <Tabs.Screen
+        name="mypage"
+        options={{
+          title: '마이',
+          headerTitle: '마이페이지',
+          tabBarIcon: ({ color, focused }) => (
+            <User 
+              size={ICON_SIZE} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
         }}
       />
     </Tabs>

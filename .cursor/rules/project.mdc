@@ -1,0 +1,53 @@
+---
+description: Kyou 프로젝트 개요 및 핵심 컨텍스트 - 모든 개발에 적용되는 기본 규칙
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Project Context: Kyou (今日) - AI Japanese Diary
+
+## App Identity
+- **App Name:** Kyou (今日, "오늘"이라는 의미)
+- **Slogan:** "Record your today, Master Japanese."
+- **Description:** 사용자가 한국어로 작성한 '오늘의 일기'를 AI가 일본어로 번역하고, 학습 자료로 변환해주는 에듀테크 앱
+
+## Core Tech Stack
+- **Framework:** React Native (Expo SDK 51+), Managed Workflow
+- **Language:** TypeScript (Strict Mode)
+- **Routing:** Expo Router (File-based routing, `app/` directory)
+- **Styling:** NativeWind (Tailwind CSS) v4
+- **Backend & DB:** Supabase (PostgreSQL, Auth, Storage)
+- **Serverless Logic:** Supabase Edge Functions (Deno)
+- **AI Engine:** Google Gemini 1.5 Flash (`@google/generative-ai`)
+- **State Management:** Zustand
+
+## Core Features
+1. **Write (Kyou):** 한국어 일기 작성 + 날짜/기분(Emoji)/날씨 선택
+2. **Translate & Learn:** 레벨 선택 → Edge Function 호출 → [일본어 번역, 핵심 어휘 3개, 원포인트 문법 레슨] 수신
+3. **Review (Archive):** 날짜별 일기 조회 (Calendar/List), 원문/번역/단어장 확인, TTS 지원
+
+## Database Schema (Supabase)
+```sql
+-- profiles (users extension)
+id (uuid, references auth.users)
+nickname (text)
+avatar_url (text)
+
+-- diaries
+id (uuid, primary key)
+user_id (uuid, foreign key)
+date (date, yyyy-mm-dd)
+mood (text, emoji)
+original_text (text, Korean)
+translated_text (text, Japanese)
+learning_level (varchar, e.g., 'N3')
+vocabulary_data (jsonb, [{word, meaning, yomikata}])
+grammar_point (text)
+created_at (timestamptz)
+```
+
+## General Rules
+- 모든 응답은 한국어로 작성
+- 코드 주석은 영어로 작성
+- 사용자 경험을 최우선으로 고려
+- 일본어 학습이라는 목적에 맞는 UI/UX 설계

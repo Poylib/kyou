@@ -1,0 +1,56 @@
+---
+description: TypeScript 코딩 컨벤션 및 타입 안전성 규칙
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: false
+---
+
+# TypeScript Coding Guidelines
+
+## Strict Mode Requirements
+- TypeScript Strict Mode 필수 적용
+- `any` 타입 사용 금지 - 명확한 타입 또는 `unknown` 사용
+- Non-null assertion (`!`) 최소화, 대신 optional chaining (`?.`) 사용
+
+## Naming Conventions
+- **Components:** PascalCase (e.g., `DiaryCard.tsx`, `MoodSelector.tsx`)
+- **Functions/Variables:** camelCase (e.g., `fetchDiaryEntry`, `userSession`)
+- **Constants:** SCREAMING_SNAKE_CASE (e.g., `MAX_DIARY_LENGTH`)
+- **Types/Interfaces:** PascalCase with `I` prefix for interfaces (e.g., `IDiary`, `TLearningLevel`)
+- **Enums:** PascalCase (e.g., `LearningLevel`, `MoodType`)
+
+## Type Definitions
+```typescript
+// 예시: 일기 데이터 타입
+interface IDiary {
+  id: string;
+  userId: string;
+  date: string; // yyyy-mm-dd
+  mood: string; // emoji
+  originalText: string;
+  translatedText: string;
+  learningLevel: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
+  vocabularyData: IVocabulary[];
+  grammarPoint: string;
+  createdAt: string;
+}
+
+interface IVocabulary {
+  word: string;
+  meaning: string;
+  yomikata: string; // 읽는 법 (히라가나)
+}
+```
+
+## Best Practices
+- 모든 함수에 반환 타입 명시
+- Props 타입은 컴포넌트 파일 상단에 정의
+- 재사용 가능한 타입은 `types/` 디렉토리에 분리
+- Generic 타입 적극 활용
+- Discriminated unions으로 상태 관리
+
+## Import Order
+1. React / React Native imports
+2. Third-party libraries
+3. Internal modules (@/components, @/hooks, etc.)
+4. Types
+5. Styles / Constants
