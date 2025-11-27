@@ -1,20 +1,21 @@
-import { View, Text, Pressable, ScrollView, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  User,
+import {
+  Award,
   Bell,
-  Palette,
-  Globe,
-  GraduationCap,
+  BookOpen,
   ChevronRight,
-  LogOut,
+  Flame,
+  GraduationCap,
   HelpCircle,
   Info,
-  BookOpen,
-  Flame,
-  Award,
-  Settings
+  LogOut,
+  Palette,
+  Settings,
+  User
 } from 'lucide-react-native';
+import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '../../src/stores/authStore';
+import { useDiaryStore } from '../../src/stores/diaryStore';
 
 /**
  * MyPage Screen - Profile & Settings
@@ -26,23 +27,6 @@ import {
  * 4. Easy navigation to sub-pages
  */
 
-// Mock user data
-const mockUser = {
-  nickname: '일본어마스터',
-  email: 'user@example.com',
-  avatar: null, // Will use default avatar
-  joinDate: '2024.01.01',
-  level: 'N4',
-};
-
-// Mock stats
-const mockStats = {
-  totalDiaries: 23,
-  totalVocabulary: 69,
-  streak: 7,
-  maxStreak: 14,
-};
-
 // Menu item type
 interface MenuItem {
   icon: React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
@@ -53,6 +37,54 @@ interface MenuItem {
 }
 
 export default function MyPageScreen() {
+  // Auth state
+  const { user, profile, signOut, isLoading } = useAuthStore();
+  
+  // Diary stats
+  const { stats } = useDiaryStore();
+
+  // Handle logout
+  const handleLogout = () => {
+    Alert.alert(
+      '로그아웃',
+      '정말 로그아웃 하시겠어요?',
+      [
+        { text: '취소', style: 'cancel' },
+        { 
+          text: '로그아웃', 
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            // Auth guard will automatically redirect to login
+          }
+        },
+      ]
+    );
+  };
+
+  // Get user display info
+  const displayName = profile?.nickname 
+    || user?.user_metadata?.full_name 
+    || user?.email?.split('@')[0] 
+    || '사용자';
+  
+  const displayEmail = user?.email || '';
+  
+  const avatarUrl = profile?.avatar_url 
+    || user?.user_metadata?.avatar_url 
+    || user?.user_metadata?.picture;
+
+  const defaultLevel = profile?.default_level || 'N4';
+
+  // Format join date
+  const joinDate = user?.created_at 
+    ? new Date(user.created_at).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).replace(/\. /g, '.').replace('.', '')
+    : '';
+
   // Settings menu items
   const settingsMenu: MenuItem[] = [
     { 
@@ -69,7 +101,7 @@ export default function MyPageScreen() {
     { 
       icon: GraduationCap, 
       label: '기본 번역 레벨',
-      value: mockUser.level,
+      value: defaultLevel,
       onPress: () => console.log('레벨 설정')
     },
   ];
@@ -83,7 +115,7 @@ export default function MyPageScreen() {
     { 
       icon: LogOut, 
       label: '로그아웃',
-      onPress: () => console.log('로그아웃'),
+      onPress: handleLogout,
       danger: true
     },
   ];
@@ -106,6 +138,7 @@ export default function MyPageScreen() {
     <Pressable
       key={item.label}
       onPress={item.onPress}
+      disabled={isLoading}
       className={`flex-row items-center justify-between py-3.5 ${
         !isLast ? 'border-b border-gray-50' : ''
       } active:opacity-70`}
@@ -151,10 +184,10 @@ export default function MyPageScreen() {
           >
             <View className="flex-row items-center">
               {/* Avatar */}
-              <View className="w-16 h-16 rounded-full bg-brand-light items-center justify-center">
-                {mockUser.avatar ? (
+              <View className="w-16 h-16 rounded-full bg-brand-light items-center justify-center overflow-hidden">
+                {avatarUrl ? (
                   <Image 
-                    source={{ uri: mockUser.avatar }} 
+                    source={{ uri: avatarUrl }} 
                     className="w-16 h-16 rounded-full"
                   />
                 ) : (
@@ -165,20 +198,22 @@ export default function MyPageScreen() {
               {/* User Info */}
               <View className="ml-4 flex-1">
                 <Text className="text-lg font-bold text-text-main">
-                  {mockUser.nickname}
+                  {displayName}
                 </Text>
-                <Text className="text-sm text-text-sub mt-0.5">
-                  {mockUser.email}
+                <Text className="text-sm text-text-sub mt-0.5" numberOfLines={1}>
+                  {displayEmail}
                 </Text>
                 <View className="flex-row items-center mt-1.5">
                   <View className="bg-brand-light px-2 py-0.5 rounded-full mr-2">
                     <Text className="text-xs font-semibold text-brand-dark">
-                      {mockUser.level}
+                      {defaultLevel}
                     </Text>
                   </View>
-                  <Text className="text-xs text-text-sub">
-                    {mockUser.joinDate} 가입
-                  </Text>
+                  {joinDate && (
+                    <Text className="text-xs text-text-sub">
+                      {joinDate} 가입
+                    </Text>
+                  )}
                 </View>
               </View>
 
@@ -212,7 +247,7 @@ export default function MyPageScreen() {
                 <BookOpen size={18} color="#7AA06E" strokeWidth={2} />
               </View>
               <Text className="text-2xl font-bold text-text-main">
-                {mockStats.totalDiaries}
+                {stats?.totalDiaries || 0}
               </Text>
               <Text className="text-xs text-text-sub mt-0.5">총 일기</Text>
             </View>
@@ -231,7 +266,7 @@ export default function MyPageScreen() {
                 <GraduationCap size={18} color="#D4A853" strokeWidth={2} />
               </View>
               <Text className="text-2xl font-bold text-text-main">
-                {mockStats.totalVocabulary}
+                {stats?.totalVocabulary || 0}
               </Text>
               <Text className="text-xs text-text-sub mt-0.5">학습 어휘</Text>
             </View>
@@ -250,19 +285,21 @@ export default function MyPageScreen() {
                 <Flame size={18} color="#E85D04" strokeWidth={2} />
               </View>
               <Text className="text-2xl font-bold text-text-main">
-                {mockStats.streak}
+                {stats?.currentStreak || 0}
               </Text>
               <Text className="text-xs text-text-sub mt-0.5">연속 작성</Text>
             </View>
           </View>
 
           {/* Max Streak Badge */}
-          <View className="mt-3 bg-brand-light/50 rounded-xl p-3 flex-row items-center">
-            <Award size={18} color="#56744C" strokeWidth={2} />
-            <Text className="ml-2 text-sm text-brand-dark">
-              최고 기록: <Text className="font-bold">{mockStats.maxStreak}일</Text> 연속 작성
-            </Text>
-          </View>
+          {(stats?.maxStreak || 0) > 0 && (
+            <View className="mt-3 bg-brand-light/50 rounded-xl p-3 flex-row items-center">
+              <Award size={18} color="#56744C" strokeWidth={2} />
+              <Text className="ml-2 text-sm text-brand-dark">
+                최고 기록: <Text className="font-bold">{stats?.maxStreak || 0}일</Text> 연속 작성
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Settings Menu */}
@@ -336,4 +373,3 @@ export default function MyPageScreen() {
     </SafeAreaView>
   );
 }
-

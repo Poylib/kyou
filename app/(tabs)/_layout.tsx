@@ -1,6 +1,6 @@
-import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, PenLine, Calendar, User } from 'lucide-react-native';
+import { Calendar, Home, PenLine, User } from 'lucide-react-native';
+import React from 'react';
 import { Platform } from 'react-native';
 
 /**

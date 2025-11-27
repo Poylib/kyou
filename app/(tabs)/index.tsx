@@ -1,14 +1,17 @@
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { 
-  PenLine, 
-  Flame, 
-  BookOpen, 
-  TrendingUp,
+import {
+  BookOpen,
   ChevronRight,
-  Sparkles
+  Flame,
+  PenLine,
+  Sparkles,
+  TrendingUp
 } from 'lucide-react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '../../src/stores/authStore';
+import { useDiaryStore } from '../../src/stores/diaryStore';
 
 /**
  * Home Screen - Dashboard
@@ -20,25 +23,45 @@ import {
  * 4. Recent progress at a glance
  */
 
-// Mock data - will be replaced with actual data from Supabase
-const mockData = {
-  streak: 7,
-  totalDiaries: 23,
-  totalVocabulary: 69,
-  todayWritten: false,
-  recentDiary: {
-    date: '2024.01.14',
-    preview: '오늘은 날씨가 좋아서 공원에서 산책을 했다...',
-    mood: '😊',
-  },
-};
-
 export default function HomeScreen() {
   const router = useRouter();
+  
+  // Auth state
+  const { user, profile } = useAuthStore();
+  
+  // Diary state
+  const { 
+    diaries, 
+    stats, 
+    hasTodayDiary, 
+    isLoading,
+    fetchDiaries, 
+    fetchStats, 
+    checkTodayDiary 
+  } = useDiaryStore();
+
+  // Fetch data on mount (only for logged in users)
+  useEffect(() => {
+    if (user) {
+      fetchDiaries({ limit: 5 });
+      fetchStats();
+      checkTodayDiary();
+    }
+  }, [user]);
+
   const today = new Date();
   const formattedDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
   const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   const dayName = dayNames[today.getDay()];
+
+  // Get most recent diary for preview
+  const recentDiary = diaries[0];
+
+  // Format date for display
+  const formatDisplayDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-bg-canvas" edges={['left', 'right']}>
@@ -53,7 +76,7 @@ export default function HomeScreen() {
             {formattedDate} {dayName}
           </Text>
           <Text className="text-2xl font-bold text-text-main mt-1">
-            오늘도 일기를 써볼까요? ✨
+            {profile?.nickname ? `${profile.nickname}님, ` : ''}오늘도 일기를 써볼까요? ✨
           </Text>
         </View>
 
@@ -71,9 +94,9 @@ export default function HomeScreen() {
           >
             {/* Status Badge */}
             <View className="flex-row items-center mb-4">
-              <View className={`px-3 py-1.5 rounded-full ${mockData.todayWritten ? 'bg-brand-light' : 'bg-accent/20'}`}>
-                <Text className={`text-xs font-semibold ${mockData.todayWritten ? 'text-brand-dark' : 'text-amber-700'}`}>
-                  {mockData.todayWritten ? '✓ 오늘 일기 완료!' : '아직 작성 전'}
+              <View className={`px-3 py-1.5 rounded-full ${hasTodayDiary ? 'bg-brand-light' : 'bg-accent/20'}`}>
+                <Text className={`text-xs font-semibold ${hasTodayDiary ? 'text-brand-dark' : 'text-amber-700'}`}>
+                  {hasTodayDiary ? '✓ 오늘 일기 완료!' : '아직 작성 전'}
                 </Text>
               </View>
             </View>
@@ -82,12 +105,12 @@ export default function HomeScreen() {
             <View className="flex-row items-center justify-between">
               <View className="flex-1 mr-4">
                 <Text className="text-lg font-semibold text-text-main">
-                  {mockData.todayWritten 
+                  {hasTodayDiary 
                     ? '오늘의 일기를 확인해보세요' 
                     : '오늘 하루는 어땠나요?'}
                 </Text>
                 <Text className="text-sm text-text-sub mt-1 leading-relaxed">
-                  {mockData.todayWritten 
+                  {hasTodayDiary 
                     ? '작성한 일기와 학습 내용을 복습할 수 있어요'
                     : '한국어로 쓰면 AI가 일본어로 변환해줘요'}
                 </Text>
@@ -116,10 +139,14 @@ export default function HomeScreen() {
               <Flame size={18} color="#E85D04" strokeWidth={2} />
               <Text className="text-xs text-text-sub ml-1.5 font-medium">연속 작성</Text>
             </View>
-            <Text className="text-2xl font-bold text-text-main">
-              {mockData.streak}
-              <Text className="text-base font-normal text-text-sub">일째</Text>
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#7AA06E" />
+            ) : (
+              <Text className="text-2xl font-bold text-text-main">
+                {stats?.currentStreak || 0}
+                <Text className="text-base font-normal text-text-sub">일째</Text>
+              </Text>
+            )}
           </View>
 
           {/* Total Diaries */}
@@ -136,10 +163,14 @@ export default function HomeScreen() {
               <BookOpen size={18} color="#7AA06E" strokeWidth={2} />
               <Text className="text-xs text-text-sub ml-1.5 font-medium">누적 일기</Text>
             </View>
-            <Text className="text-2xl font-bold text-text-main">
-              {mockData.totalDiaries}
-              <Text className="text-base font-normal text-text-sub">편</Text>
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#7AA06E" />
+            ) : (
+              <Text className="text-2xl font-bold text-text-main">
+                {stats?.totalDiaries || 0}
+                <Text className="text-base font-normal text-text-sub">편</Text>
+              </Text>
+            )}
           </View>
 
           {/* Total Vocabulary */}
@@ -156,10 +187,14 @@ export default function HomeScreen() {
               <TrendingUp size={18} color="#EBCD78" strokeWidth={2} />
               <Text className="text-xs text-text-sub ml-1.5 font-medium">학습 어휘</Text>
             </View>
-            <Text className="text-2xl font-bold text-text-main">
-              {mockData.totalVocabulary}
-              <Text className="text-base font-normal text-text-sub">개</Text>
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#7AA06E" />
+            ) : (
+              <Text className="text-2xl font-bold text-text-main">
+                {stats?.totalVocabulary || 0}
+                <Text className="text-base font-normal text-text-sub">개</Text>
+              </Text>
+            )}
           </View>
         </View>
 
@@ -176,27 +211,57 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          <Pressable 
-            className="bg-bg-surface rounded-2xl p-4 active:scale-[0.99]"
-            style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.04,
-              shadowRadius: 8,
-            }}
-          >
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="flex-row items-center">
-                <Text className="text-2xl mr-2">{mockData.recentDiary.mood}</Text>
-                <Text className="text-sm text-text-sub font-medium">
-                  {mockData.recentDiary.date}
-                </Text>
-              </View>
+          {isLoading ? (
+            <View className="bg-bg-surface rounded-2xl p-4 items-center justify-center h-24">
+              <ActivityIndicator color="#7AA06E" />
             </View>
-            <Text className="text-base text-text-main leading-relaxed" numberOfLines={2}>
-              {mockData.recentDiary.preview}
-            </Text>
-          </Pressable>
+          ) : recentDiary ? (
+            <Pressable 
+              className="bg-bg-surface rounded-2xl p-4 active:scale-[0.99]"
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+              }}
+              onPress={() => {
+                useDiaryStore.getState().setCurrentDiary(recentDiary);
+                router.push('/result');
+              }}
+            >
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center">
+                  <Text className="text-2xl mr-2">{recentDiary.mood}</Text>
+                  <Text className="text-sm text-text-sub font-medium">
+                    {formatDisplayDate(recentDiary.date)}
+                  </Text>
+                </View>
+                {recentDiary.is_translated && (
+                  <View className="bg-brand-light px-2 py-1 rounded-full">
+                    <Text className="text-xs text-brand-dark font-medium">번역완료</Text>
+                  </View>
+                )}
+              </View>
+              <Text className="text-base text-text-main leading-relaxed" numberOfLines={2}>
+                {recentDiary.original_text}
+              </Text>
+            </Pressable>
+          ) : (
+            <View 
+              className="bg-bg-surface rounded-2xl p-4"
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+              }}
+            >
+              <Text className="text-sm text-text-sub text-center">
+                아직 작성한 일기가 없어요.{'\n'}
+                오늘 첫 일기를 작성해보세요! 🍵
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Learning Tip Card */}

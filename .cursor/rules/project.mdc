@@ -24,7 +24,8 @@ alwaysApply: true
 ## Core Features
 1. **Write (Kyou):** 한국어 일기 작성 + 날짜/기분(Emoji)/날씨 선택
 2. **Translate & Learn:** 레벨 선택 → Edge Function 호출 → [일본어 번역, 핵심 어휘 3개, 원포인트 문법 레슨] 수신
-3. **Review (Archive):** 날짜별 일기 조회 (Calendar/List), 원문/번역/단어장 확인, TTS 지원
+3. **Review (Archive):** 날짜별 일기 조회 (Calendar/List), 원문/번역/단어장 확인
+4. **TTS (고도화):** 일본어 음성 재생 *(후순위)*
 
 ## Database Schema (Supabase)
 ```sql
@@ -45,6 +46,21 @@ vocabulary_data (jsonb, [{word, meaning, yomikata}])
 grammar_point (text)
 created_at (timestamptz)
 ```
+
+## Development Priority
+
+### 🚀 Current Focus (MVP)
+1. UI/UX 완성 (Mock 데이터)
+2. Supabase 연동 (Auth, Database)
+3. Edge Function + Gemini API 연동
+4. 핵심 CRUD 기능
+
+### ⏳ Deferred Features (고도화 단계)
+- **TTS (Text-to-Speech):** 마지막 고도화 단계에서 구현 예정
+  - `expo-speech` 사용 예정
+  - 일본어 번역문 음성 재생
+  - 어휘 카드 음성 재생
+  - 현재는 UI 버튼만 배치, 기능은 미구현
 
 ## General Rules
 - 모든 응답은 한국어로 작성

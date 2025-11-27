@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
   Pressable, 
   ScrollView,
-  FlatList
+  FlatList,
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { 
   CalendarDays, 
   List,
@@ -14,6 +17,9 @@ import {
   ChevronRight,
   BookOpen
 } from 'lucide-react-native';
+import { useDiaryStore } from '../../src/stores/diaryStore';
+import { useAuthStore } from '../../src/stores/authStore';
+import { Diary } from '../../src/types/database';
 
 /**
  * Archive Screen - Past Diaries
@@ -25,59 +31,46 @@ import {
  * 4. Quick preview cards
  */
 
-// Mock diary data
-const mockDiaries = [
-  { 
-    id: '1', 
-    date: '2024-01-14', 
-    mood: '😊', 
-    preview: '오늘은 친구들과 맛있는 라멘을 먹었다. 정말 행복한 하루였다.',
-    hasTranslation: true
-  },
-  { 
-    id: '2', 
-    date: '2024-01-13', 
-    mood: '😌', 
-    preview: '조용히 책을 읽으며 하루를 보냈다. 마음이 평온해졌다.',
-    hasTranslation: true
-  },
-  { 
-    id: '3', 
-    date: '2024-01-11', 
-    mood: '🥳', 
-    preview: '드디어 프로젝트가 끝났다! 팀원들과 축하 파티를 했다.',
-    hasTranslation: true
-  },
-  { 
-    id: '4', 
-    date: '2024-01-10', 
-    mood: '🤔', 
-    preview: '새로운 취미를 시작해볼까 고민 중이다. 뭐가 좋을까...',
-    hasTranslation: true
-  },
-  { 
-    id: '5', 
-    date: '2024-01-08', 
-    mood: '😢', 
-    preview: '비가 와서 기분이 우울했다. 따뜻한 차 한잔이 위로가 됐다.',
-    hasTranslation: true
-  },
-];
-
 type ViewMode = 'calendar' | 'list';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTHS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 
 export default function ArchiveScreen() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const { diaries, isLoading, fetchDiaries, fetchDiariesByMonth, setCurrentDiary } = useDiaryStore();
+  
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [refreshing, setRefreshing] = useState(false);
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
 
+  // Fetch diaries on mount and when month changes
+  useEffect(() => {
+    // Fetch regardless of login status (will be empty if not logged in)
+    if (viewMode === 'calendar') {
+      fetchDiariesByMonth(currentYear, currentMonth + 1);
+    } else {
+      fetchDiaries({ limit: 50 });
+    }
+  }, [currentYear, currentMonth, viewMode]);
+
+  // Pull to refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    if (viewMode === 'calendar') {
+      await fetchDiariesByMonth(currentYear, currentMonth + 1);
+    } else {
+      await fetchDiaries({ limit: 50 });
+    }
+    setRefreshing(false);
+  }, [viewMode, currentYear, currentMonth]);
+
   // Get diary dates for calendar dot indicators
-  const diaryDates = mockDiaries.map(d => d.date);
+  const diaryDates = diaries.map(d => d.date);
 
   // Navigate months
   const goToPrevMonth = () => {
@@ -120,13 +113,27 @@ export default function ArchiveScreen() {
     return diaryDates.includes(formatDateString(day));
   };
 
+  const getDiaryForDay = (day: number): Diary | undefined => {
+    const dateStr = formatDateString(day);
+    return diaries.find(d => d.date === dateStr);
+  };
+
   const formatDisplayDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return `${date.getMonth() + 1}월 ${date.getDate()}일`;
   };
 
-  const renderDiaryCard = ({ item }: { item: typeof mockDiaries[0] }) => (
+  const handleDiaryPress = (diary: Diary) => {
+    setCurrentDiary(diary);
+    router.push({
+      pathname: '/result',
+      params: { diaryId: diary.id }
+    });
+  };
+
+  const renderDiaryCard = ({ item }: { item: Diary }) => (
     <Pressable
+      onPress={() => handleDiaryPress(item)}
       className="bg-bg-surface rounded-2xl p-4 mb-3 active:scale-[0.99]"
       style={{
         shadowColor: '#000',
@@ -142,14 +149,14 @@ export default function ArchiveScreen() {
             {formatDisplayDate(item.date)}
           </Text>
         </View>
-        {item.hasTranslation && (
+        {item.is_translated && (
           <View className="bg-brand-light px-2 py-1 rounded-full">
             <Text className="text-xs text-brand-dark font-medium">번역완료</Text>
           </View>
         )}
       </View>
       <Text className="text-base text-text-main leading-relaxed" numberOfLines={2}>
-        {item.preview}
+        {item.original_text}
       </Text>
     </Pressable>
   );
@@ -201,6 +208,9 @@ export default function ArchiveScreen() {
           className="flex-1" 
           contentContainerStyle={{ paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7AA06E" />
+          }
         >
           {/* Month Navigation */}
           <View className="flex-row items-center justify-between px-5 py-3">
@@ -238,58 +248,82 @@ export default function ArchiveScreen() {
 
             {/* Calendar Days */}
             <View className="flex-row flex-wrap">
-              {generateCalendarDays().map((day, index) => (
-                <View 
-                  key={index} 
-                  className="items-center justify-center"
-                  style={{ width: '14.28%', aspectRatio: 1 }}
-                >
-                  {day && (
-                    <Pressable
-                      className={`w-10 h-10 items-center justify-center rounded-full ${
-                        hasDiary(day) ? 'bg-brand-light' : ''
-                      }`}
-                    >
-                      <Text className={`text-base ${
-                        hasDiary(day) ? 'font-semibold text-brand-dark' : 'text-text-main'
-                      }`}>
-                        {day}
-                      </Text>
-                      {hasDiary(day) && (
-                        <View className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-brand" />
-                      )}
-                    </Pressable>
-                  )}
-                </View>
-              ))}
+              {generateCalendarDays().map((day, index) => {
+                const diary = day ? getDiaryForDay(day) : undefined;
+                return (
+                  <View 
+                    key={index} 
+                    className="items-center justify-center"
+                    style={{ width: '14.28%', aspectRatio: 1 }}
+                  >
+                    {day && (
+                      <Pressable
+                        onPress={() => diary && handleDiaryPress(diary)}
+                        disabled={!diary}
+                        className={`w-10 h-10 items-center justify-center rounded-full ${
+                          hasDiary(day) ? 'bg-brand-light' : ''
+                        }`}
+                      >
+                        <Text className={`text-base ${
+                          hasDiary(day) ? 'font-semibold text-brand-dark' : 'text-text-main'
+                        }`}>
+                          {day}
+                        </Text>
+                        {hasDiary(day) && (
+                          <View className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-brand" />
+                        )}
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </View>
 
           {/* Diary List for Selected Month */}
           <View className="px-5 mt-6">
             <Text className="text-base font-semibold text-text-main mb-3">
-              {MONTHS[currentMonth]}의 일기 ({mockDiaries.length}편)
+              {MONTHS[currentMonth]}의 일기 ({diaries.length}편)
             </Text>
-            {mockDiaries.map((diary) => (
-              <View key={diary.id}>
-                {renderDiaryCard({ item: diary })}
+            {isLoading ? (
+              <View className="items-center py-8">
+                <ActivityIndicator color="#7AA06E" />
               </View>
-            ))}
+            ) : diaries.length > 0 ? (
+              diaries.map((diary) => (
+                <View key={diary.id}>
+                  {renderDiaryCard({ item: diary })}
+                </View>
+              ))
+            ) : (
+              <View className="bg-bg-surface rounded-2xl p-6 items-center">
+                <Text className="text-sm text-text-sub text-center">
+                  이 달에 작성한 일기가 없어요
+                </Text>
+              </View>
+            )}
           </View>
         </ScrollView>
       ) : (
         /* List View */
         <View className="flex-1">
-          {mockDiaries.length > 0 ? (
+          {isLoading && diaries.length === 0 ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator color="#7AA06E" size="large" />
+            </View>
+          ) : diaries.length > 0 ? (
             <FlatList
-              data={mockDiaries}
+              data={diaries}
               renderItem={renderDiaryCard}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ padding: 20, paddingTop: 8 }}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7AA06E" />
+              }
               ListHeaderComponent={
                 <Text className="text-sm text-text-sub mb-3">
-                  총 {mockDiaries.length}편의 일기
+                  총 {diaries.length}편의 일기
                 </Text>
               }
             />
@@ -312,4 +346,3 @@ export default function ArchiveScreen() {
     </SafeAreaView>
   );
 }
-

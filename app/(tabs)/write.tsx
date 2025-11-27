@@ -1,23 +1,28 @@
-import { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  Pressable, 
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Sparkles, 
+import { useRouter } from 'expo-router';
+import {
   ChevronDown,
-  Sun,
   Cloud,
   CloudRain,
   Snowflake,
+  Sparkles,
+  Sun,
   Wind
 } from 'lucide-react-native';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '../../src/stores/authStore';
+import { useDiaryStore } from '../../src/stores/diaryStore';
 
 /**
  * Write Screen - Diary Entry
@@ -51,33 +56,85 @@ const weathers = [
 ];
 
 // JLPT Levels
-const levels = ['N5', 'N4', 'N3', 'N2', 'N1'];
+const levels = ['N5', 'N4', 'N3', 'N2', 'N1'] as const;
+type Level = typeof levels[number];
 
 const MAX_CHARACTERS = 500;
 
 export default function WriteScreen() {
+  const router = useRouter();
+  const { user, profile } = useAuthStore();
+  const { createDiary, isLoading } = useDiaryStore();
+  
   const [diaryText, setDiaryText] = useState('');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
-  const [selectedLevel, setSelectedLevel] = useState('N4');
+  const [selectedLevel, setSelectedLevel] = useState<Level>((profile?.default_level as Level) || 'N4');
   const [showLevelPicker, setShowLevelPicker] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
 
   const today = new Date();
   const formattedDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+  const todayDateString = today.toISOString().split('T')[0]; // yyyy-mm-dd format
 
   const characterCount = diaryText.length;
   const isValidEntry = diaryText.trim().length >= 10 && selectedMood;
 
-  const handleTranslate = () => {
+  const handleTranslate = async () => {
     if (!isValidEntry) return;
-    // TODO: Call Edge Function for translation
-    console.log({
-      text: diaryText,
-      mood: selectedMood,
-      weather: selectedWeather,
-      level: selectedLevel,
-    });
+
+    setLocalLoading(true);
+
+    // If logged in, save to DB first
+    if (user) {
+      const result = await createDiary({
+        date: todayDateString,
+        mood: selectedMood!,
+        weather: selectedWeather || undefined,
+        original_text: diaryText.trim(),
+        learning_level: selectedLevel,
+      });
+
+      if (result.success && result.diary) {
+        router.push({
+          pathname: '/result',
+          params: {
+            diaryId: result.diary.id,
+            isNew: 'true',
+          }
+        });
+        
+        // Clear form
+        setDiaryText('');
+        setSelectedMood(null);
+        setSelectedWeather(null);
+      } else {
+        Alert.alert('오류', result.error || '일기 저장에 실패했어요');
+      }
+    } else {
+      // Guest mode: Skip DB, go directly to result with params
+      router.push({
+        pathname: '/result',
+        params: {
+          guestMode: 'true',
+          text: diaryText.trim(),
+          mood: selectedMood!,
+          weather: selectedWeather || '',
+          level: selectedLevel,
+          date: todayDateString,
+        }
+      });
+      
+      // Clear form
+      setDiaryText('');
+      setSelectedMood(null);
+      setSelectedWeather(null);
+    }
+
+    setLocalLoading(false);
   };
+
+  const loading = isLoading || localLoading;
 
   return (
     <SafeAreaView className="flex-1 bg-bg-canvas" edges={['left', 'right']}>
@@ -199,6 +256,7 @@ export default function WriteScreen() {
                 value={diaryText}
                 onChangeText={setDiaryText}
                 maxLength={MAX_CHARACTERS + 50}
+                editable={!loading}
               />
             </View>
 
@@ -298,9 +356,9 @@ export default function WriteScreen() {
         >
           <Pressable
             onPress={handleTranslate}
-            disabled={!isValidEntry}
+            disabled={!isValidEntry || loading}
             className={`h-14 rounded-full flex-row items-center justify-center gap-2 ${
-              isValidEntry 
+              isValidEntry && !loading
                 ? 'bg-brand active:bg-brand-dark' 
                 : 'bg-gray-200'
             }`}
@@ -311,14 +369,19 @@ export default function WriteScreen() {
               shadowRadius: 8,
             }}
           >
-            <Sparkles size={20} color="white" strokeWidth={2} />
-            <Text className="text-white font-semibold text-base">
-              AI 번역하기
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Sparkles size={20} color="white" strokeWidth={2} />
+                <Text className="text-white font-semibold text-base">
+                  AI 번역하기
+                </Text>
+              </>
+            )}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
