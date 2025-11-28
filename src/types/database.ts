@@ -54,20 +54,37 @@ export interface GrammarExample {
   korean: string;
 }
 
+// Vocabulary Book Item (from vocabulary_book table)
+export interface VocabularyBookItem {
+  id: string; // uuid, primary key
+  user_id: string; // uuid, foreign key
+  diary_id: string | null; // uuid, foreign key (optional)
+  word: string;
+  reading: string;
+  meaning: string;
+  example: string | null;
+  example_meaning: string | null;
+  is_memorized: boolean;
+  created_at: string;
+}
+
 // JLPT Learning levels
 export type LearningLevel = 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
 
 // Database row types for Supabase queries
 export type DiaryRow = Diary;
 export type ProfileRow = Profile;
+export type VocabularyBookRow = VocabularyBookItem;
 
 // Insert types (without auto-generated fields)
 export type DiaryInsert = Omit<Diary, 'id' | 'created_at' | 'updated_at'>;
 export type ProfileInsert = Omit<Profile, 'created_at' | 'updated_at'>;
+export type VocabularyBookInsert = Omit<VocabularyBookItem, 'id' | 'created_at' | 'is_memorized'> & { is_memorized?: boolean };
 
 // Update types (partial, without id)
 export type DiaryUpdate = Partial<Omit<Diary, 'id' | 'user_id' | 'created_at'>>;
 export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'created_at'>>;
+export type VocabularyBookUpdate = Partial<Omit<VocabularyBookItem, 'id' | 'user_id' | 'diary_id' | 'created_at'>>;
 
 // Supabase Database type definition
 export interface Database {
@@ -82,6 +99,11 @@ export interface Database {
         Row: DiaryRow;
         Insert: DiaryInsert;
         Update: DiaryUpdate;
+      };
+      vocabulary_book: {
+        Row: VocabularyBookRow;
+        Insert: VocabularyBookInsert;
+        Update: VocabularyBookUpdate;
       };
     };
     Views: Record<string, never>;

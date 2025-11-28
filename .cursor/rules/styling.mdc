@@ -258,12 +258,65 @@ import { PenLine, Calendar, BookOpen, Settings, Plus } from 'lucide-react-native
 
 ---
 
-## Animation & Transitions
+## Animation & Transitions (Reanimated)
 
-- `react-native-reanimated` 사용 권장
-- 로딩 시 Skeleton Loader (brand-light 색상)
-- 부드러운 화면 전환 적용
-- 버튼 press 시 subtle scale animation
+### Core Principles
+- **Library:** 모든 동적 인터랙션은 `react-native-reanimated` (v3/v4)를 필수적으로 사용합니다.
+- **Anti-Pattern:** React Native 내장 `Animated` API 사용을 지양합니다 (Bridge 부하 방지).
+- **Haptics:** 애니메이션과 함께 `expo-haptics`를 적절히 조합하여 물리적 피드백을 제공합니다.
+
+### Essential Patterns
+
+#### 1. Layout Animations (Entry/Exit)
+컴포넌트의 마운트/언마운트 시에는 `Layout Animations`를 적극 활용하여 생동감을 줍니다.
+
+```tsx
+import Animated, { FadeInDown, FadeOutUp, Layout } from 'react-native-reanimated';
+
+// 리스트 아이템 등장 효과 (Staggered effect recommended for lists)
+<Animated.View 
+  entering={FadeInDown.delay(index * 100).springify()} 
+  layout={Layout.springify()}
+  className="bg-white p-4 mb-3 rounded-2xl"
+>
+  <Text>Item Content</Text>
+</Animated.View>
+```
+
+#### 2. Micro-Interactions (Press Scale)
+버튼이나 카드 터치 시 미세하게 작아지는(Scale Down) 효과를 주어 조작감을 향상시킵니다.
+
+```tsx
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+
+// Custom Hook or Wrapper Component
+const scale = useSharedValue(1);
+const animatedStyle = useAnimatedStyle(() => ({
+  transform: [{ scale: scale.value }]
+}));
+
+<Pressable 
+  onPressIn={() => scale.value = withSpring(0.97)}
+  onPressOut={() => scale.value = withSpring(1)}
+>
+  <Animated.View style={animatedStyle} className="...">
+    {/* Content */}
+  </Animated.View>
+</Pressable>
+```
+
+#### 3. Shared Values & Hooks
+- 상태 변화에 따른 스타일 변경은 `useState` 대신 `useSharedValue`와 `useAnimatedStyle`을 사용합니다.
+- 무거운 연산이 필요한 애니메이션 로직은 'Worklet' 안에서 실행되도록 합니다.
+
+### NativeWind Integration
+NativeWind v4와 함께 사용할 때는 `Animated` 컴포넌트에 `className`을 직접 적용합니다.
+
+```tsx
+<Animated.View className="flex-1 bg-bg-canvas" entering={FadeIn}>
+  {/* ... */}
+</Animated.View>
+```
 
 ---
 

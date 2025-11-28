@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Calendar, Home, PenLine, User } from 'lucide-react-native';
+import { Book, Calendar, Home, PenLine, User } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 
@@ -86,23 +86,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 2: Write - Diary Entry */}
-      <Tabs.Screen
-        name="write"
-        options={{
-          title: '쓰기',
-          headerTitle: '일기 쓰기',
-          tabBarIcon: ({ color, focused }) => (
-            <PenLine 
-              size={ICON_SIZE} 
-              color={color} 
-              strokeWidth={focused ? 2.5 : 2}
-            />
-          ),
-        }}
-      />
-
-      {/* Tab 3: Archive - Calendar/List View */}
+      {/* Tab 2: Archive - Calendar/List View (Moved up for better flow) */}
       <Tabs.Screen
         name="archive"
         options={{
@@ -118,7 +102,23 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 4: My Page - Profile & Settings */}
+      {/* Tab 3: Vocabulary - Word List */}
+      <Tabs.Screen
+        name="vocabulary"
+        options={{
+          title: '단어장',
+          headerTitle: '나만의 단어장',
+          tabBarIcon: ({ color, focused }) => (
+            <Book 
+              size={ICON_SIZE} 
+              color={color} 
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
+        }}
+      />
+
+      {/* Tab 5: My Page - Profile & Settings */}
       <Tabs.Screen
         name="mypage"
         options={{

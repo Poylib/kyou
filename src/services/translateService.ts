@@ -7,6 +7,7 @@
 
 import { supabase } from '../lib/supabase';
 import { VocabularyItem, GrammarPoint, LearningLevel } from '../types/database';
+import { useVocabStore } from '../stores/vocabStore';
 
 // Response type from Edge Function
 interface TranslationResponse {
@@ -38,9 +39,20 @@ export async function translateDiary(
       return { data: null, error: '텍스트가 너무 짧아요 (최소 10자)' };
     }
 
+    // Get excluded words from store (words already in vocabulary book)
+    const vocabStore = useVocabStore.getState();
+    // Send up to 50 recent words to prevent token limit issues
+    const excludeWords = vocabStore.words
+      .slice(0, 50)
+      .map(w => w.word);
+
     // Call Edge Function
     const { data, error } = await supabase.functions.invoke('translate-diary', {
-      body: { text: text.trim(), level },
+      body: { 
+        text: text.trim(), 
+        level,
+        exclude_words: excludeWords
+      },
     });
 
     if (error) {

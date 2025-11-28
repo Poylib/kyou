@@ -20,9 +20,11 @@ import {
   Check,
   Share2,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Bookmark
 } from 'lucide-react-native';
 import { useDiaryStore } from '../src/stores/diaryStore';
+import { useVocabStore } from '../src/stores/vocabStore';
 import { translateDiary } from '../src/services/translateService';
 import { Diary, VocabularyItem, GrammarPoint, LearningLevel } from '../src/types/database';
 
@@ -62,6 +64,7 @@ export default function ResultScreen() {
   }>();
   
   const { currentDiary, fetchDiaryById, updateDiaryTranslation, deleteDiary, isLoading } = useDiaryStore();
+  const { addWord } = useVocabStore();
   
   const [diary, setDiary] = useState<Diary | GuestDiary | null>(null);
   const [isGuestMode, setIsGuestMode] = useState(false);
@@ -227,6 +230,22 @@ export default function ResultScreen() {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
+  // Handle save word
+  const handleSaveWord = async (word: VocabularyItem) => {
+    if (isGuestMode || !diary) {
+      Alert.alert('알림', '단어 저장은 로그인 후 이용할 수 있어요');
+      return;
+    }
+
+    const result = await addWord(word, diary.id, diary.original_text);
+    
+    if (result.success) {
+      Alert.alert('저장 완료', `단어장에 '${word.word}' 단어가 추가되었어요! 📒`);
+    } else {
+      Alert.alert('오류', result.error || '단어 저장에 실패했어요');
+    }
+  };
+
   // Handle TTS (deferred feature)
   const handleSpeak = () => {
     alert('🔊 음성 재생 기능은 곧 추가될 예정이에요!');
@@ -317,7 +336,13 @@ export default function ResultScreen() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-3 border-b border-brand-light">
         <Pressable 
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)');
+            }
+          }}
           className="w-10 h-10 rounded-full bg-bg-surface items-center justify-center active:bg-brand-light"
           style={{
             shadowColor: '#000',
@@ -504,7 +529,7 @@ export default function ResultScreen() {
                 >
                   {/* Word & Reading */}
                   <View className="flex-row items-start justify-between mb-2">
-                    <View className="flex-1">
+                    <View className="flex-1 mr-2">
                       <Text className="text-2xl font-bold text-text-main">
                         {vocab.word}
                       </Text>
@@ -512,15 +537,26 @@ export default function ResultScreen() {
                         {vocab.reading}
                       </Text>
                     </View>
-                    {copiedIndex === index ? (
-                      <View className="w-7 h-7 rounded-full bg-brand items-center justify-center">
-                        <Check size={14} color="white" strokeWidth={3} />
-                      </View>
-                    ) : (
-                      <View className="w-7 h-7 rounded-full bg-brand-light items-center justify-center">
-                        <Copy size={14} color="#56744C" strokeWidth={2} />
-                      </View>
-                    )}
+                    <View className="flex-row gap-2">
+                      <Pressable
+                        onPress={() => handleSaveWord(vocab)}
+                        className="w-8 h-8 rounded-full bg-brand-light items-center justify-center"
+                      >
+                        <Bookmark size={16} color="#56744C" strokeWidth={2} />
+                      </Pressable>
+                      <Pressable
+                        onPress={() => handleCopy(vocab.word, index)}
+                        className={`w-8 h-8 rounded-full items-center justify-center ${
+                          copiedIndex === index ? 'bg-brand' : 'bg-brand-light'
+                        }`}
+                      >
+                        {copiedIndex === index ? (
+                          <Check size={16} color="white" strokeWidth={3} />
+                        ) : (
+                          <Copy size={16} color="#56744C" strokeWidth={2} />
+                        )}
+                      </Pressable>
+                    </View>
                   </View>
 
                   {/* Meaning */}

@@ -59,8 +59,18 @@ const levelDescriptions: Record<string, string> = {
 /**
  * Build the translation prompt based on level
  */
-function buildPrompt(text: string, level: string): string {
+function buildPrompt(text: string, level: string, excludeWords: string[] = []): string {
   const levelDesc = levelDescriptions[level] || levelDescriptions['N4'];
+  
+  // Calculate dynamic vocabulary count based on text length
+  // Base: 3 words
+  // Add 1 word for every 50 characters
+  // Max: 7 words
+  const targetVocabCount = Math.min(3 + Math.floor(text.length / 50), 7);
+
+  const excludePrompt = excludeWords.length > 0 
+    ? `\n\n## 제외 단어\n다음 단어들은 사용자가 이미 학습 중이므로 vocabulary 추출에서 제외하고, 다른 유용한 단어를 선택해주세요: ${excludeWords.slice(0, 50).join(', ')}`
+    : '';
   
   return `당신은 한국어-일본어 번역 전문가이자 일본어 교육자입니다.
 사용자의 한국어 일기를 JLPT ${level} 수준에 맞는 자연스러운 일본어로 번역해주세요.
@@ -79,7 +89,7 @@ ${levelDesc}
 
 """
 ${text}
-"""
+"""${excludePrompt}
 
 ## 응답 형식 (반드시 아래 JSON 형식으로만 응답하세요)
 {
@@ -106,7 +116,7 @@ ${text}
 }
 
 ## 중요 사항
-- vocabulary는 번역문에서 가장 유용한 단어 3개를 선택하세요.
+- vocabulary는 번역문에서 가장 유용한 단어 ${targetVocabCount}개를 선택하세요.
 - grammar_point는 번역문에 사용된 가장 중요한 문법 1개를 선택하세요.
 - 반드시 유효한 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.`;
 }
@@ -140,7 +150,7 @@ function parseGeminiResponse(responseText: string): TranslationResponse {
     
     return {
       translated_text: parsed.translated_text,
-      vocabulary: parsed.vocabulary.slice(0, 3), // Ensure max 3 items
+      vocabulary: parsed.vocabulary, // Return all vocabulary items provided by AI
       grammar_point: parsed.grammar_point,
     };
   } catch (error) {
@@ -169,7 +179,7 @@ serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { text, level } = await req.json();
+    const { text, level, exclude_words } = await req.json();
 
     // Validate input
     if (!text || typeof text !== 'string') {
@@ -218,7 +228,7 @@ serve(async (req: Request) => {
     });
 
     // Build prompt and generate content
-    const prompt = buildPrompt(text, level);
+    const prompt = buildPrompt(text, level, exclude_words || []);
     
     console.log('Generating translation for level:', level);
     console.log('Text length:', text.length);

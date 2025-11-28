@@ -62,9 +62,9 @@ export default function ArchiveScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     if (viewMode === 'calendar') {
-      await fetchDiariesByMonth(currentYear, currentMonth + 1);
+      await fetchDiariesByMonth(currentYear, currentMonth + 1, true);
     } else {
-      await fetchDiaries({ limit: 50 });
+      await fetchDiaries({ limit: 50, forceRefresh: true });
     }
     setRefreshing(false);
   }, [viewMode, currentYear, currentMonth]);

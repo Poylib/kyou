@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   ChevronDown,
   Cloud,
@@ -6,9 +6,10 @@ import {
   Snowflake,
   Sparkles,
   Sun,
-  Wind
+  Wind,
+  X
 } from 'lucide-react-native';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,8 +22,8 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuthStore } from '../../src/stores/authStore';
-import { useDiaryStore } from '../../src/stores/diaryStore';
+import { useAuthStore } from '../src/stores/authStore';
+import { useDiaryStore } from '../src/stores/diaryStore';
 
 /**
  * Write Screen - Diary Entry
@@ -64,7 +65,7 @@ const MAX_CHARACTERS = 500;
 export default function WriteScreen() {
   const router = useRouter();
   const { user, profile } = useAuthStore();
-  const { createDiary, isLoading } = useDiaryStore();
+  const { createDiary, isLoading, checkTodayDiary, hasTodayDiary, diaries, setCurrentDiary } = useDiaryStore();
   
   const [diaryText, setDiaryText] = useState('');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
@@ -77,6 +78,42 @@ export default function WriteScreen() {
   const formattedDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
   const todayDateString = today.toISOString().split('T')[0]; // yyyy-mm-dd format
 
+  // Check for existing diary on focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        checkTodayDiary().then(() => {
+          const isWritten = useDiaryStore.getState().hasTodayDiary;
+          if (isWritten) {
+            Alert.alert(
+              "오늘 일기 완료",
+              "오늘은 이미 일기를 작성하셨네요! 작성한 일기를 확인하러 갈까요?",
+              [
+                {
+                  text: "아니요",
+                  onPress: () => router.back(),
+                  style: "cancel"
+                },
+                { 
+                  text: "확인하기", 
+                  onPress: () => {
+                    const todayDiary = useDiaryStore.getState().diaries.find(d => d.date === todayDateString);
+                    if (todayDiary) {
+                      setCurrentDiary(todayDiary);
+                      router.replace('/result');
+                    } else {
+                      router.replace('/archive');
+                    }
+                  }
+                }
+              ]
+            );
+          }
+        });
+      }
+    }, [user])
+  );
+
   const characterCount = diaryText.length;
   const isValidEntry = diaryText.trim().length >= 10 && selectedMood;
 
@@ -85,7 +122,6 @@ export default function WriteScreen() {
 
     setLocalLoading(true);
 
-    // If logged in, save to DB first
     if (user) {
       const result = await createDiary({
         date: todayDateString,
@@ -104,7 +140,6 @@ export default function WriteScreen() {
           }
         });
         
-        // Clear form
         setDiaryText('');
         setSelectedMood(null);
         setSelectedWeather(null);
@@ -112,7 +147,6 @@ export default function WriteScreen() {
         Alert.alert('오류', result.error || '일기 저장에 실패했어요');
       }
     } else {
-      // Guest mode: Skip DB, go directly to result with params
       router.push({
         pathname: '/result',
         params: {
@@ -125,7 +159,6 @@ export default function WriteScreen() {
         }
       });
       
-      // Clear form
       setDiaryText('');
       setSelectedMood(null);
       setSelectedWeather(null);
@@ -137,11 +170,33 @@ export default function WriteScreen() {
   const loading = isLoading || localLoading;
 
   return (
-    <SafeAreaView className="flex-1 bg-bg-canvas" edges={['left', 'right']}>
+    <SafeAreaView className="flex-1 bg-bg-canvas" edges={['top', 'left', 'right']}>
+      {/* Custom Header */}
+      <View className="flex-row items-center justify-between px-5 py-3 border-b border-brand-light">
+        <Pressable 
+          onPress={() => router.back()}
+          className="w-10 h-10 rounded-full bg-bg-surface items-center justify-center active:bg-brand-light"
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+          }}
+        >
+          <X size={20} color="#4B4036" strokeWidth={2} />
+        </Pressable>
+        
+        <Text className="text-lg font-bold text-text-main">
+          일기 쓰기
+        </Text>
+
+        <View className="w-10 h-10" /> 
+      </View>
+
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
-        keyboardVerticalOffset={100}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ScrollView 
           className="flex-1"
